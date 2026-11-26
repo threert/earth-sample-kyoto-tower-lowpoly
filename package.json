@@ -1,0 +1,17 @@
+{
+  "name": "earth-place",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "A place on EarthRT: models and a ThreeRT scene at a spot on the Earth.",
+  "scripts": {
+    "build": "bun tools/build.ts",
+    "bake": "bun tools/bake.ts",
+    "check": "bun tools/check.ts",
+    "place": "bun tools/place.ts",
+    "meshy": "bun tools/meshy.ts",
+    "dev": "bun tools/dev.ts",
+    "register": "bun tools/register.ts",
+    "sync-earthrt": "bun tools/sync-earthrt.ts"
+  }
+}

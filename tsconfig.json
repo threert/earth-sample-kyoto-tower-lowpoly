@@ -1,0 +1,15 @@
+{
+  "extends": "/Applications/ThreeRT.app/Contents/Resources/sdk/engine/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "typeRoots": ["/Applications/ThreeRT.app/Contents/Resources/sdk/engine/node_modules/@types"],
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "paths": {
+      "@threert/scene": ["/Applications/ThreeRT.app/Contents/Resources/sdk/engine/packages/scene/src/index.ts"],
+      "@threert/gameplay": ["/Applications/ThreeRT.app/Contents/Resources/sdk/engine/packages/gameplay/src/index.ts"],
+      "@threert/net": ["/Applications/ThreeRT.app/Contents/Resources/sdk/engine/../packages/net/src/index.ts"]
+    }
+  },
+  "include": ["scene/**/*.ts", "preview.ts"]
+}

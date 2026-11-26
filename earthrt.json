@@ -1,0 +1,19 @@
+{
+  "format": "earthrt/place@1",
+  "id": "kyoto-tower",
+  "title": "Kyoto Tower, low-poly",
+  "summary": "Kyoto Tower and its building as a faceted, pastel model: one GLB, the same on the web and in ThreeRT.",
+  "kind": "site",
+  "topic": "site:kyoto-tower",
+  "anchor": { "lat": 34.98758, "lon": 135.75925, "height": 0, "heightRef": "terrain", "heading": 0 },
+  "bounds": { "radius": 42 },
+  "visibleFrom": 15000,
+  "replaces": ["buildings"],
+  "minDistance": 2,
+  "content": [
+    { "type": "glb", "uri": "assets/models/kyoto-tower.glb", "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": 1 }
+  ],
+  "start": { "position": [95, 45, 150], "target": [0, 70, 0] },
+  "license": "CC0-1.0",
+  "credits": []
+}

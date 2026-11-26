@@ -1,0 +1,26 @@
+# On every push: the scene builds to what is committed in dist/, and the place passes `bun run check` (the manifest
+# as EarthRT's index checks it, files, model limits, credits, the scene running and its fallback up to date).
+name: check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: install @threert/scene (to run the scene module)
+        run: |
+          mkdir -p .ci && cd .ci
+          echo '{"private":true}' > package.json
+          bun add @threert/scene
+      - name: dist/ is built from scene/
+        run: bun tools/build.ts --verify
+      - name: check
+        env:
+          THREERT_SCENE: ${{ github.workspace }}/.ci/node_modules/@threert/scene
+        run: bun run check
