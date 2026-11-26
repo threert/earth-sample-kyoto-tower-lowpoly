@@ -4,7 +4,7 @@
 // place on the globe is the EarthRT app's dev mode (`bun run dev --app`) or the web's (`bun run dev`).
 //
 // Keys: T later in the day (+1 h), Y earlier, N night / noon, G the ground on / off, F the fallback GLB instead of
-// the scene (what the web shows).
+// the scene (what the map shows).
 import * as THREE from "@threert/scene";
 import { DirectionalLight, GLTFModel, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, Scene, SkyAtmosphere, type Object3D } from "@threert/scene";
 import { defineGame, type FrameContext } from "@threert/gameplay";

@@ -2,9 +2,18 @@
 
 This repository is one **place** on [EarthRT](https://github.com/threert/EarthRT), the whole Earth path-traced by
 ThreeRT: a room, a building, a garden or a city at a real spot on the map. `earthrt.json` says where it is and what it
-holds; the files it names are its content. Registered with EarthRT's index, it shows on the globe for everyone, on the
-web (three.js) and in the EarthRT app (every light traced by ThreeRT). Several people may make the same thing: those are
-versions of one **topic**, ranked by likes and the repository's stars.
+holds; the files it names are its content. Registered with EarthRT's index, it shows for everyone. Several people may
+make the same thing: those are versions of one **topic**, ranked by likes and the repository's stars.
+
+**Two renderers draw it.**
+
+- **The map** (three.js: the website, and the EarthRT app's map view) shows the place from the air, among the
+  globe's terrain and buildings: its `glb` models and the `fallback` GLB of its scene. Raster, quick, everywhere.
+- **The traced view** (ThreeRT, in the EarthRT app) is where people go *in*: when they come within `enterFrom` of
+  the place (or press Enter), the app path-traces the place and a kilometre or two around it, every light traced,
+  under the same sun. It draws the **scene module** (`scene/main.ts`) and the `glb` models. **The scene module is
+  what people see traced**: put the care there (materials, light, the inside of rooms); the fallback only has to read
+  right from the air.
 
 You (a coding agent) build the place here, usually inside the **EarthRT app**: its Create here / Remix made this folder
 (`~/EarthRT/places/<name>`), opened it in dev mode and started you in its agent panel. Read this file through before
@@ -14,20 +23,20 @@ you change anything.
 
 | what | command |
 | --- | --- |
-| the place on the globe, path-traced, reloading on save | the EarthRT app, in dev mode: already on when the app started you; else `bun run dev --app` |
-| the same on the web (three.js) | `bun run dev` (opens earth.threert.dev with `?dev=`) |
+| the place in the app, on the map and traced, reloading on save | the EarthRT app, in dev mode: already on when the app started you; else `bun run dev --app` |
+| the map on the web (three.js) | `bun run dev` (opens earth.threert.dev with `?dev=`) |
 | is it ready | `bun run check` (errors stop a publish; fix every one) |
 | the scene → `dist/scene.js` | `bun run build` (the app builds on save for its own view; commit a build) |
-| the scene → `assets/models/scene.glb`, what the web shows | `bun run bake` |
+| the scene → `assets/models/scene.glb`, what the map shows | `bun run bake` |
 | models from Meshy | `bun run meshy text "…" --name x --height 2` |
-| where it is | `bun run place --at <lat,lon or a map link> [--heading deg] [--radius m]` |
+| where it is, how far it reaches, where people go in | `bun run place --at <lat,lon or a map link> [--heading deg] [--radius m] [--enter-from m]` |
 | publish | the app's **Publish**, or commit and `bun run register` |
 
-**Look at what you made** before you call it done: the app shows the place where it stands on the Earth. Optional, if
-ThreeRT is installed (`/Applications/ThreeRT.app`): `threert dev --detach` runs `preview.ts`, the place alone under its
+**Look at what you made** before you call it done, both ways: from the air on the map, and inside in the traced view.
+Optional, if ThreeRT is installed (`/Applications/ThreeRT.app`): `threert dev --detach` runs `preview.ts`, the place alone under its
 real sun, path-traced, and `threert shot -o .threert/shot.png` saves a frame you can read (`--camera
 '{"position":[x,y,z],"target":[x,y,z],"fov":40}'` to look from elsewhere; keys `T`/`Y` move the hour, `N` night,
-`G` the ground, `F` the web's fallback GLB instead of the scene, as `threert key T`).
+`G` the ground, `F` the map's fallback GLB instead of the scene, as `threert key T`).
 
 Do not edit `earthrt/` (a copy of EarthRT's core: `bun run sync-earthrt`), `dist/` (built) or `preview.ts` (the
 optional preview) unless the task is about them.
@@ -43,8 +52,12 @@ optional preview) unless the task is about them.
 - Everything stays inside `bounds` (a radius about the anchor, or a polygon of `[lat, lon]`); `replaces:
   ["buildings"]` hides EarthRT's own (OpenStreetMap) buildings inside it, which you want when you build a building
   that stands where one of those is.
-- A place is seen from `visibleFrom` metres (defaults: interior 300, site 3000, city 30 000) and the camera may come
-  to `minDistance` of its content. `start` is where "Go there" puts the camera, in the place's frame.
+- The map loads the place from `visibleFrom` metres (defaults: interior 300, site 3000, city 30 000). The app offers
+  the traced view within `enterFrom` (a site's or an interior's distance from the anchor, a city's height above its
+  ground; defaults interior 80, site 400, city 300): set it to where going in starts to be worth it, a few times the
+  place's size (a room in a dense block 30–50 m, a lantern 60 m, a 130 m tower 600 m); `check` says when it looks
+  wrong. The camera may come to `minDistance` of its content. `start` is where "Go there" puts the camera, in the
+  place's frame.
 
 How big things are (use these; models from anywhere come at any scale):
 
@@ -75,15 +88,15 @@ EarthRT's globe beside the trunk's buildings, which is the real check.
 
 ## What a place holds (`content`)
 
-| type | what | where it shows |
-| --- | --- | --- |
-| `glb` | a model, placed by `position` (m), `rotation` (degrees, XYZ), `scale` in the place's frame | web and app |
-| `scene` | a ThreeRT scene module: `scene/main.ts`, built to `dist/scene.js` | app; the web draws its `fallback` GLB |
-| `tiles` | a city's own tiles (EarthRT's tile format, SPEC § 4) | both (for whole cities; see EarthRT's docs) |
+| type | what | the map (from the air) | the traced view (inside) |
+| --- | --- | --- | --- |
+| `glb` | a model, placed by `position` (m), `rotation` (degrees, XYZ), `scale` in the place's frame | yes | yes |
+| `scene` | a ThreeRT scene module: `scene/main.ts`, built to `dist/scene.js` | its `fallback` GLB | yes: this is what is traced |
+| `tiles` | a city's own tiles (EarthRT's tile format, SPEC § 4) | yes | yes |
 
 Use a **scene** for what is made in code (rooms, procedural buildings, lights, anything that should look right when
 traced) and **glb** for models (from Meshy, or CC0 ones). A scene can also load models (`new GLTFModel("assets/…")`),
-but list a model as `glb` content when the web should show it too: `bake` does not put models a scene loads into the
+but list a model as `glb` content when the map should show it too: `bake` does not put models a scene loads into the
 fallback.
 
 ### Scene code (`scene/main.ts`)
@@ -175,9 +188,10 @@ no CC-BY-NC or "editorial use" models. Data from OpenStreetMap (footprints, heig
 ## On the Earth: dev mode
 
 - **In the app** (EarthRT for macOS): a place folder open in dev mode (Create here, Remix, File → Open Place Folder,
-  or `bun run dev --app`, which opens `earthrt://dev?path=<this folder>`) is drawn inside the globe at its anchor,
-  path-traced; the app builds the scene module on every save and reloads the place.
-- **On the web**: `bun run dev` serves this folder at `http://127.0.0.1:8797/place/` and opens EarthRT's page with
+  or `bun run dev --app`, which opens `earthrt://dev?path=<this folder>`) is served to both renderers: the map draws
+  it at its anchor (GLBs, fallback) and the traced view draws it when you go in (scene module, GLBs). The app builds
+  the scene module on every save and reloads both.
+- **On the web** (the map only): `bun run dev` serves this folder at `http://127.0.0.1:8797/place/` and opens EarthRT's page with
   `?dev=` that address; it rebuilds and bakes the scene on every save and the page reloads the place. `--proxy` serves
   the web app from this machine too, for a browser that will not let an https page read `http://127.0.0.1` (Chrome
   asks once to allow "local network access": allow it).

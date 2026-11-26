@@ -6,7 +6,7 @@
 //   bun run place --at "https://www.openstreetmap.org/#map=19/35.00366/135.77512"   an OpenStreetMap link
 //   bun run place --at "https://earth.threert.dev/?at=35.0036,135.7751,300"     an EarthRT link
 //     [--heading 90 | --face 35.0040,135.7760]      forward (−z) toward a compass bearing, or toward a point
-//     [--radius 30] [--height 0] [--height-ref terrain|ellipsoid] [--visible-from 1500]
+//     [--radius 30] [--height 0] [--height-ref terrain|ellipsoid] [--visible-from 1500] [--enter-from 120]
 //     [--id x] [--title T] [--summary S] [--kind city|site|interior] [--topic site:x] [--license L]
 //     [--fit]                                       bounds = how far the models reach (+10 %)
 import { writeFileSync } from "node:fs";
@@ -83,6 +83,8 @@ if (import.meta.main) {
     if (radius !== undefined) m.bounds = { radius };
     const vf = num("--visible-from");
     if (vf !== undefined) m.visibleFrom = vf;
+    const ef = num("--enter-from");
+    if (ef !== undefined) m.enterFrom = ef;
     for (const k of ["id", "title", "summary", "topic", "license"] as const) {
       const v = flag(`--${k}`);
       if (v !== undefined) (m as unknown as Record<string, string>)[k] = v;

@@ -5,7 +5,7 @@
 //   bun run check [--json] [--no-scene]
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { placeRadius, validatePlace, type GlbContent, type PlaceManifest, type SceneContent, type TilesContent } from "../earthrt/core/places.ts";
+import { ENTER_FROM, VISIBLE_FROM, placeRadius, validatePlace, type GlbContent, type PlaceManifest, type SceneContent, type TilesContent } from "../earthrt/core/places.ts";
 import { glbStats, readGlb, type GlbStats } from "./lib/glb.ts";
 import { loadThree, readManifest, root, runScene, sceneModulePath } from "./lib/scene.ts";
 
@@ -96,6 +96,11 @@ export async function check(o: { scene?: boolean } = {}): Promise<Report> {
   const kind = m.kind;
   r.info.push(`${m.id}: ${m.kind} "${m.title}" at ${m.anchor.lat.toFixed(6)}, ${m.anchor.lon.toFixed(6)} (heading ${m.anchor.heading ?? 0}°), bounds ${radius.toFixed(0)} m, topic ${m.topic ?? `${m.kind}:${m.id}`}`);
   if (Math.abs(m.anchor.lat) < 1e-3 && Math.abs(m.anchor.lon) < 1e-3) r.errors.push("anchor: 0, 0 is in the Gulf of Guinea: set the place's anchor (bun run place --at <lat,lon | map URL>)");
+  const enter = m.enterFrom ?? ENTER_FROM[m.kind], visible = m.visibleFrom ?? VISIBLE_FROM[m.kind];
+  r.info.push(`the map loads it from ${visible} m; the traced view is offered within ${enter} m${m.kind === "city" ? " above the ground" : " of the anchor"}${m.enterFrom === undefined ? " (the default)" : ""}`);
+  if (enter > visible) r.warnings.push(`enterFrom (${enter} m) is beyond visibleFrom (${visible} m): the traced view would be offered before the map shows the place`);
+  if (m.kind !== "city" && enter < radius) r.warnings.push(`enterFrom (${enter} m) is inside the bounds (${radius.toFixed(0)} m): people reach the place's edge before they can go in`);
+  if (m.kind !== "city" && enter > Math.max(400, radius * 30)) r.warnings.push(`enterFrom (${enter} m) is far for a place ${radius.toFixed(0)} m across: the traced view draws it and a kilometre or two around it, so going in from far away shows mostly the trunk`);
   if (!m.summary) r.warnings.push("summary: one line for the map and the list");
   if (!m.start) r.warnings.push(`start: where "Go there" puts the camera (in the place's frame), e.g. { "position": [0, 1.6, 8], "target": [0, 1, 0] }`);
   if (!m.license) r.warnings.push(`license: the licence of the place's content (e.g. "CC-BY-4.0", "CC0-1.0")`);
@@ -117,7 +122,7 @@ export async function check(o: { scene?: boolean } = {}): Promise<Report> {
       if (sc.fallback) {
         const s = glbFile(sc.fallback, r);
         if (s) triangles += s.triangles;
-      } else r.warnings.push("the scene has no fallback: the web shows only a marker here (bun run bake)");
+      } else r.warnings.push("the scene has no fallback: the map shows only a marker here (bun run bake)");
       if (existsSync(join(root, sc.entry))) {
         const { builtHash, sourceHash } = await import("./build.ts");
         if (builtHash(sc.entry) !== sourceHash()) r.errors.push(`${sc.entry} was not built from scene/ as it is: bun run build (and commit it)`);

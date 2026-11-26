@@ -21,6 +21,11 @@ export function pretty(v: unknown, indent = ""): string {
   return `{\n${Object.entries(v as object).filter(([, x]) => x !== undefined).map(([k, x]) => `${inner}${JSON.stringify(k)}: ${pretty(x, inner)}`).join(",\n")}\n${indent}}`;
 }
 
+/** The order of SPEC § 5's example; fields it does not name keep their place at the end. */
+const ORDER = ["format", "id", "title", "summary", "kind", "topic", "anchor", "bounds", "visibleFrom", "enterFrom", "replaces", "minDistance", "era", "content", "start", "license", "credits"];
+
 export function writeManifest(root: string, m: PlaceManifest) {
-  writeFileSync(join(root, "earthrt.json"), pretty(m) + "\n");
+  const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
+  const sorted = Object.fromEntries(Object.entries(m).sort(([a], [b]) => rank(a) - rank(b)));
+  writeFileSync(join(root, "earthrt.json"), pretty(sorted) + "\n");
 }

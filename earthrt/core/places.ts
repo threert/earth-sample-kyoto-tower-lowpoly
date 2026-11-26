@@ -24,6 +24,9 @@ export interface PlaceManifest {
   anchor: { lat: number; lon: number; height?: number; heightRef?: "terrain" | "ellipsoid"; heading?: number };
   bounds: { radius: number } | { polygon: [number, number][] };
   visibleFrom?: number;
+  /** Where the traced view is offered (SPEC § 5): a city's height above the ground inside its bounds, a site's or
+   *  an interior's distance from its anchor, m. */
+  enterFrom?: number;
   replaces?: ("buildings" | "terrain")[];
   minDistance?: number;
   era?: { label: string; year?: number };
@@ -50,6 +53,7 @@ export interface PlaceRecord {
 }
 
 export const VISIBLE_FROM: Record<PlaceKind, number> = { city: 30_000, site: 3_000, interior: 300 };
+export const ENTER_FROM: Record<PlaceKind, number> = { city: 300, site: 400, interior: 80 };
 
 const ID = /^[a-z0-9][a-z0-9-]{2,63}$/;
 const isNum = (v: unknown, lo = -Infinity, hi = Infinity) => typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
@@ -78,6 +82,7 @@ export function validatePlace(m: unknown): string[] {
   else if (b.radius !== undefined && !isNum(b.radius, 0.5, 200_000)) e.push("bounds.radius: 0.5 m to 200 km");
   else if (b.polygon !== undefined && (!Array.isArray(b.polygon) || b.polygon.length < 3 || b.polygon.length > 4096 || !b.polygon.every((p) => Array.isArray(p) && isNum(p[0], -90, 90) && isNum(p[1], -180, 180)))) e.push("bounds.polygon: 3-4096 [lat, lon] points");
   if (o.visibleFrom !== undefined && !isNum(o.visibleFrom, 1, 2_000_000)) e.push("visibleFrom: m");
+  if (o.enterFrom !== undefined && !isNum(o.enterFrom, 1, 100_000)) e.push("enterFrom: m");
   if (o.replaces !== undefined && (!Array.isArray(o.replaces) || !o.replaces.every((r) => r === "buildings" || r === "terrain"))) e.push(`replaces: ["buildings" | "terrain"]`);
   if (o.minDistance !== undefined && !isNum(o.minDistance, 0, 10_000)) e.push("minDistance: m");
   if (!Array.isArray(o.content) || o.content.length === 0 || o.content.length > 256) e.push("content: 1-256 entries");

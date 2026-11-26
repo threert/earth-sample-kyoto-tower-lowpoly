@@ -1,9 +1,10 @@
 // bun run dev: the place on the Earth while you make it (SPEC § 7, dev mode).
 //
-//   bun run dev --app        the EarthRT app opens this folder in dev mode (earthrt://dev?path=<this folder>): it maps
-//                            the folder into its assets, builds the scene on every save and reloads the place in the
-//                            globe at its anchor, path-traced. (A place made with the app's Create / Remix is open
-//                            there already: you need not run this.)
+//   bun run dev --app        the EarthRT app opens this folder in dev mode (earthrt://dev?path=<this folder>): it
+//                            serves the folder to the map (the GLBs and the scene's fallback, from the air) and to
+//                            the traced view (the scene module and GLBs, path-traced, when you go in), builds the
+//                            scene on every save and reloads both. (A place made with the app's Create / Remix is
+//                            open there already: you need not run this.)
 //   bun run dev              the web: serves this folder and opens EarthRT's page with `?dev=<url>`
 //   bun run dev --proxy      the same, with the web app served from this machine too (same origin: for a browser that
 //                            will not let an https page read http://127.0.0.1)
