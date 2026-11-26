@@ -1,15 +1,16 @@
 // bun run meshy: models from Meshy (https://docs.meshy.ai), saved into assets/models/ in metres and placed in
 // earthrt.json. Text to 3D is two tasks (a preview: the shape; a refine: its textures, PBR); image to 3D is one.
-// The key is MESHY_API_KEY (your own: meshy.ai → API). `--test` uses Meshy's test-mode key, which costs nothing and
-// returns a sample model whatever the prompt: for trying the tool, not for a place.
+// The key is MESHY_API_KEY (your own: https://www.meshy.ai/developers/keys, a paid plan; each task costs credits).
+// `--mock` runs everything against a local stand-in for the API (no key, no credits; a placeholder cube): for trying
+// the tool and its tests. Meshy keeps a task's files for 3 days: `resume` within that.
 //
 //   bun run meshy text "a weathered granite stone lantern, Japanese garden" --name lantern --height 1.6
 //   bun run meshy image photo.jpg --name bench --size 1.8           (a file, an https URL, or several: multi-image)
 //     [--at x,z] [--y 0] [--rotate 90]        where it stands in the place's frame (m), turned about up (degrees)
 //     [--height m | --size m]                 its height, or its largest horizontal extent (default: height 1)
 //     [--no-place]                            only save the GLB (no entry in earthrt.json)
-//     [--polycount 30000] [--topology triangle|quad] [--model latest] [--style realistic|sculpture]
-//     [--texture "texture prompt"] [--no-pbr] [--no-refine] [--seed n] [--symmetry auto|on|off]
+//     [--polycount 30000] [--topology triangle|quad] [--model latest]
+//     [--texture "texture prompt"] [--no-pbr] [--no-refine] [--seed n] [--mock]
 //   bun run meshy resume <task-id> [--image] --name x …   download a task that finished (or is still running)
 //   bun run meshy fit <models/x.glb> --height 1.6 …       place or re-size a GLB you have (any source)
 //   bun run meshy balance                                 your credits
@@ -23,9 +24,7 @@ import { glbStats, readGlb } from "./lib/glb.ts";
 import { readManifest, root } from "./lib/scene.ts";
 import { writeManifest } from "./lib/json.ts";
 
-export const MESHY = process.env.MESHY_API_BASE ?? "https://api.meshy.ai";
-/** Meshy's test-mode key (docs.meshy.ai, "Test Mode"): free, returns sample results. */
-export const TEST_KEY = "msy_dummy_api_key_for_test_mode_12345678";
+let MESHY = process.env.MESHY_API_BASE ?? "https://api.meshy.ai";
 export const CREDIT = "Model made with Meshy";
 
 const args = process.argv.slice(2);
@@ -42,9 +41,9 @@ const num = (n: string) => {
 };
 
 function key(): string {
-  if (args.includes("--test")) return TEST_KEY;
+  if (args.includes("--mock")) return "msy_mock";
   const k = process.env.MESHY_API_KEY;
-  if (!k) throw new Error("MESHY_API_KEY is not set: make a key at https://www.meshy.ai/settings/api (or --test to try the tool with Meshy's test mode)");
+  if (!k) throw new Error("MESHY_API_KEY is not set: make a key at https://www.meshy.ai/developers/keys (or --mock to try the tool without one)");
   return k;
 }
 
@@ -100,21 +99,20 @@ async function poll(path: string): Promise<Task> {
       process.stdout.write("\n");
       throw new Error(`Meshy task ${t.id} ${t.status.toLowerCase()}: ${t.task_error?.message ?? ""}`);
     }
-    await Bun.sleep(5000);
+    await Bun.sleep(args.includes("--mock") ? 200 : 5000);
   }
 }
 
 /** Text to 3D: a preview (geometry), then a refine (textures). Returns the finished task. */
 async function textTo3d(prompt: string): Promise<{ task: Task; ids: string[] }> {
-  if (prompt.length > 600) throw new Error("the prompt is at most 600 characters");
+  if (prompt.length > 800) throw new Error("the prompt is at most 800 characters");
   const preview = {
     mode: "preview", prompt,
-    art_style: flag("--style") ?? "realistic",
     ai_model: flag("--model") ?? "latest",
+    should_remesh: true,
     topology: flag("--topology") ?? "triangle",
     target_polycount: num("--polycount") ?? 30000,
-    should_remesh: true,
-    symmetry_mode: flag("--symmetry") ?? "auto",
+    target_formats: ["glb"],
     ...(num("--seed") !== undefined ? { seed: num("--seed") } : {}),
   };
   const p = (await meshy("POST", "/openapi/v2/text-to-3d", preview)).result as string;
@@ -125,6 +123,7 @@ async function textTo3d(prompt: string): Promise<{ task: Task; ids: string[] }> 
     mode: "refine", preview_task_id: p,
     enable_pbr: !args.includes("--no-pbr"),
     ai_model: flag("--model") ?? "latest",
+    target_formats: ["glb"],
     ...(flag("--texture") ? { texture_prompt: flag("--texture") } : {}),
   };
   const r = (await meshy("POST", "/openapi/v2/text-to-3d", refine)).result as string;
@@ -137,8 +136,8 @@ function imageUrl(s: string): string {
   if (/^https:\/\//.test(s) || s.startsWith("data:")) return s;
   if (!existsSync(s)) throw new Error(`${s}: no such file`);
   const ext = extname(s).toLowerCase();
-  const mime = ext === ".png" ? "image/png" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : null;
-  if (!mime) throw new Error(`${s}: a .png or .jpg`);
+  const mime = ext === ".png" ? "image/png" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : ext === ".webp" ? "image/webp" : null;
+  if (!mime) throw new Error(`${s}: a .png, .jpg or .webp (at most 20 MB)`);
   return `data:${mime};base64,${readFileSync(s).toString("base64")}`;
 }
 
@@ -151,7 +150,7 @@ async function imageTo3d(images: string[]): Promise<{ task: Task; ids: string[] 
     should_remesh: true,
     should_texture: true,
     enable_pbr: !args.includes("--no-pbr"),
-    symmetry_mode: flag("--symmetry") ?? "auto",
+    target_formats: ["glb"],
     ...(flag("--texture") ? { texture_prompt: flag("--texture") } : {}),
   };
   const multi = images.length > 1;
@@ -233,8 +232,12 @@ function fitOpts(): Fit {
 }
 
 if (import.meta.main) {
+  if (args.includes("--mock")) {
+    const { startMock } = await import("./lib/meshy-mock.ts");
+    MESHY = startMock();
+  }
   const [cmd, ...rest] = args;
-  const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && rest[i - 1].startsWith("--") && !["--test", "--no-place", "--no-pbr", "--no-refine", "--image"].includes(rest[i - 1])));
+  const positional = rest.filter((a, i) => !a.startsWith("--") && !(i > 0 && rest[i - 1].startsWith("--") && !["--mock", "--no-place", "--no-pbr", "--no-refine", "--image"].includes(rest[i - 1])));
   try {
     if (cmd === "balance") {
       const b = await meshy("GET", "/openapi/v1/balance");
@@ -258,8 +261,8 @@ if (import.meta.main) {
       const url = task.model_urls?.glb;
       if (!url) throw new Error(`task ${task.id} has no GLB`);
       const glb = await download(url);
-      save(name, glb, { source: "meshy", tasks: ids, prompt, images: cmd === "image" ? positional.map((p) => (p.startsWith("http") ? p : basename(p))) : undefined, test: args.includes("--test") || undefined }, fitOpts(), !args.includes("--no-place"));
-      if (args.includes("--test")) console.log("! test mode: this is Meshy's sample model, not what you asked for");
+      save(name, glb, { source: "meshy", tasks: ids, prompt, images: cmd === "image" ? positional.map((p) => (p.startsWith("http") ? p : basename(p))) : undefined, test: args.includes("--mock") || undefined }, fitOpts(), !args.includes("--no-place"));
+      if (args.includes("--mock")) console.log("! --mock: a placeholder cube from the local stand-in, not a model (check refuses it in a place)");
     } else if (cmd === "fit") {
       const uri = positional[0];
       if (!uri || !existsSync(join(root, uri))) throw new Error("bun run meshy fit <assets/models/x.glb> --height <m> [--at x,z] [--rotate deg]");

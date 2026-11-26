@@ -1,7 +1,7 @@
-// The place alone, path-traced: what `threert dev` (and the client's Remix) shows while you make it. It reads
-// earthrt.json, puts every `glb` where the manifest says, runs the scene module (scene/main.ts) in the place's frame,
-// and lights it with the real sun over the anchor at a local solar time. The globe around it is EarthRT's dev mode
-// (`bun run dev`, AGENTS.md).
+// Optional, for those with ThreeRT installed: the place alone, path-traced, as `threert dev` shows it (with
+// threert.config.json). It reads earthrt.json, puts every `glb` where the manifest says, runs the scene module
+// (scene/main.ts) in the place's frame, and lights it with the real sun over the anchor at a local solar time. The
+// place on the globe is the EarthRT app's dev mode (`bun run dev --app`) or the web's (`bun run dev`).
 //
 // Keys: T later in the day (+1 h), Y earlier, N night / noon, G the ground on / off, F the fallback GLB instead of
 // the scene (what the web shows).

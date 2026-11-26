@@ -3,31 +3,34 @@
 This repository is one **place** on [EarthRT](https://github.com/threert/EarthRT), the whole Earth path-traced by
 ThreeRT: a room, a building, a garden or a city at a real spot on the map. `earthrt.json` says where it is and what it
 holds; the files it names are its content. Registered with EarthRT's index, it shows on the globe for everyone, on the
-web (three.js) and in the ThreeRT client (every light traced). Several people may make the same thing: those are
+web (three.js) and in the EarthRT app (every light traced by ThreeRT). Several people may make the same thing: those are
 versions of one **topic**, ranked by likes and the repository's stars.
 
-You (a coding agent) build the place here. Read this file through before you change anything.
+You (a coding agent) build the place here, usually inside the **EarthRT app**: its Create here / Remix made this folder
+(`~/EarthRT/places/<name>`), opened it in dev mode and started you in its agent panel. Read this file through before
+you change anything.
 
 ## The loop
 
 | what | command |
 | --- | --- |
-| the place alone, path-traced, reloading on save | `threert dev --detach` (the ThreeRT client's Remix runs it for you) |
-| look at it | `threert shot -o .threert/shot.png`, then **read the PNG**. `--camera '{"position":[x,y,z],"target":[x,y,z],"fov":40}'` to look from elsewhere |
-| time of day, the ground, the web's view | `threert key T` (+1 h), `Y` (−1 h), `N` (night / noon), `G` (ground), `F` (the fallback GLB instead of the scene) |
-| the scene → `dist/scene.js` | `bun run build` |
-| the scene → `assets/models/scene.glb`, what the web shows | `bun run bake` |
+| the place on the globe, path-traced, reloading on save | the EarthRT app, in dev mode: already on when the app started you; else `bun run dev --app` |
+| the same on the web (three.js) | `bun run dev` (opens earth.threert.dev with `?dev=`) |
 | is it ready | `bun run check` (errors stop a publish; fix every one) |
-| the place on the Earth | `bun run dev` (web) · `bun run dev --client` (ThreeRT) |
+| the scene → `dist/scene.js` | `bun run build` (the app builds on save for its own view; commit a build) |
+| the scene → `assets/models/scene.glb`, what the web shows | `bun run bake` |
 | models from Meshy | `bun run meshy text "…" --name x --height 2` |
 | where it is | `bun run place --at <lat,lon or a map link> [--heading deg] [--radius m]` |
-| publish | commit, then `bun run register` |
+| publish | the app's **Publish**, or commit and `bun run register` |
 
-`threert` is the ThreeRT command line (`/Applications/ThreeRT.app/Contents/MacOS/threert` on a Mac; the app installs
-it on the PATH from its menu). `threert check` typechecks `preview.ts` and the scene and runs them headless.
+**Look at what you made** before you call it done: the app shows the place where it stands on the Earth. Optional, if
+ThreeRT is installed (`/Applications/ThreeRT.app`): `threert dev --detach` runs `preview.ts`, the place alone under its
+real sun, path-traced, and `threert shot -o .threert/shot.png` saves a frame you can read (`--camera
+'{"position":[x,y,z],"target":[x,y,z],"fov":40}'` to look from elsewhere; keys `T`/`Y` move the hour, `N` night,
+`G` the ground, `F` the web's fallback GLB instead of the scene, as `threert key T`).
 
 Do not edit `earthrt/` (a copy of EarthRT's core: `bun run sync-earthrt`), `dist/` (built) or `preview.ts` (the
-preview harness) unless the task is about them.
+optional preview) unless the task is about them.
 
 ## The frame and units
 
@@ -74,8 +77,8 @@ EarthRT's globe beside the trunk's buildings, which is the real check.
 
 | type | what | where it shows |
 | --- | --- | --- |
-| `glb` | a model, placed by `position` (m), `rotation` (degrees, XYZ), `scale` in the place's frame | web and client |
-| `scene` | a ThreeRT scene module: `scene/main.ts`, built to `dist/scene.js` | client; the web draws its `fallback` GLB |
+| `glb` | a model, placed by `position` (m), `rotation` (degrees, XYZ), `scale` in the place's frame | web and app |
+| `scene` | a ThreeRT scene module: `scene/main.ts`, built to `dist/scene.js` | app; the web draws its `fallback` GLB |
 | `tiles` | a city's own tiles (EarthRT's tile format, SPEC § 4) | both (for whole cities; see EarthRT's docs) |
 
 Use a **scene** for what is made in code (rooms, procedural buildings, lights, anything that should look right when
@@ -99,8 +102,7 @@ export default function build(ctx: PlaceContext): Object3D {
 - Imports only from `@threert/scene` (three.js's classes: `Mesh`, `*Geometry`, `MeshStandardMaterial`,
   `MeshPhysicalMaterial`, `PointLight`, `SpotLight`, `RectAreaLight`, `GLTFModel`, `InstancedMesh`, …) and your own
   files under `scene/` (bundled in). No DOM, no network, no timers. `build` runs once; return the whole place.
-- **No sun, no sky, no camera**: those are EarthRT's (the real sun over the anchor at the viewer's time). The preview
-  adds them for you.
+- **No sun, no sky, no camera**: those are EarthRT's (the real sun over the anchor at the viewer's time).
 - Physical units: point and spot lights in **candela** (a candle ~1, a 60 W bulb ~70, a paper lantern 10–50);
   `emissiveIntensity` in **nits** (a lit paper window 100–300, a screen 200–500, a neon tube 1000+). Every emissive
   surface lights what is around it when traced: a lamp's shade glowing is often the whole light. Don't add fill
@@ -123,7 +125,8 @@ After changing the scene: `bun run build && bun run bake`, and commit `dist/` an
 ## Models with Meshy
 
 [Meshy](https://www.meshy.ai) makes textured models from a sentence or a picture. With the user's own key in
-`MESHY_API_KEY` (meshy.ai → Settings → API; it costs their credits: say how many models you are about to make):
+`MESHY_API_KEY` (https://www.meshy.ai/developers/keys; each model costs their credits: say how many you are about to
+make). The app's Meshy panel does the same for a person without you:
 
 ```sh
 bun run meshy text "a weathered granite Japanese stone lantern, moss on the roof" --name lantern --height 1.8 --at 2,-1
@@ -131,6 +134,7 @@ bun run meshy image photo.jpg --name bench --size 1.8 --rotate 90         # a ph
 bun run meshy resume <task-id> --name lantern --height 1.8                # a task that was interrupted
 bun run meshy fit assets/models/lantern.glb --height 1.6 --at 0,0         # re-size or move a model you have
 bun run meshy balance
+bun run meshy text "anything" --name test --height 1 --mock               # no key, no credits: a placeholder cube
 ```
 
 - Meshy's models have no real size: `--height` (m) or `--size` (its largest horizontal extent, m) scales it;
@@ -139,9 +143,10 @@ bun run meshy balance
   `credits`. Check it in the preview and move it with `fit` until it sits right.
 - Prompts: one object, its material and state, its style ("a lacquered red wooden torii gate, slightly worn"), not a
   scene. Things that are many objects (a room, a street) are better as a scene with Meshy models for the props.
-- `--test` uses Meshy's free test mode: a sample model whatever you ask for. Fine to try the tool; `check` refuses it
-  in a place.
-- Defaults: triangles, 30 000 polygons (`--polycount`), PBR textures (`--no-pbr` for colour only).
+- `--mock` runs the tool against a local stand-in for Meshy (a placeholder cube): to try the tool, never for a
+  place (`check` refuses it). Meshy keeps a task's files for 3 days: `resume` an interrupted task within that.
+- Defaults: Meshy's latest model, remeshed to 30 000 triangles (`--polycount`), PBR textures (`--no-pbr` for colour
+  only), GLB only.
 
 ## Licences and credits
 
@@ -169,19 +174,22 @@ no CC-BY-NC or "editorial use" models. Data from OpenStreetMap (footprints, heig
 
 ## On the Earth: dev mode
 
-`bun run dev` serves this folder at `http://127.0.0.1:8797/place/` and opens EarthRT with `?dev=` that address: the
-globe flies to the place and shows it from these files instead of the index's copy, reloading on every save (scene
-changes are rebuilt and baked first). `--client` opens EarthRT in the ThreeRT client the same way (path-traced);
-`--proxy` serves the web app from this machine too, for a browser that will not let an https page read
-`http://127.0.0.1` (Chrome asks once to allow "local network access": allow it).
+- **In the app** (EarthRT for macOS): a place folder open in dev mode (Create here, Remix, File → Open Place Folder,
+  or `bun run dev --app`, which opens `earthrt://dev?path=<this folder>`) is drawn inside the globe at its anchor,
+  path-traced; the app builds the scene module on every save and reloads the place.
+- **On the web**: `bun run dev` serves this folder at `http://127.0.0.1:8797/place/` and opens EarthRT's page with
+  `?dev=` that address; it rebuilds and bakes the scene on every save and the page reloads the place. `--proxy` serves
+  the web app from this machine too, for a browser that will not let an https page read `http://127.0.0.1` (Chrome
+  asks once to allow "local network access": allow it).
 
 ## Publishing
 
 1. `bun run check` passes; commit everything (`dist/`, the GLBs).
-2. `bun run register` pushes, makes sure the repository is public with the topic `earthrt-place`, and registers it
-   with EarthRT's index (`https://earth.threert.dev/api/v1`, signed in as `gh auth token`). Later commits:
-   `bun run register` again refreshes it (each commit is a version). `--create owner/name` makes the GitHub
-   repository first. The index also finds repositories with the topic `earthrt-place` by itself, hourly.
+2. In the app: **Publish** (a repository under the user's GitHub account, the `earthrt-place` topic, registered). Or
+   `bun run register`: it pushes, makes sure the repository is public with the topic, and registers it with EarthRT's
+   index (`https://earth.threert.dev/api/v1`, signed in as `gh auth token`); `--create owner/name` makes the GitHub
+   repository first. Later commits: the same again refreshes it (each commit is a version). The index also finds
+   repositories with the topic `earthrt-place` by itself, hourly.
 3. It prints the place's address on EarthRT. Likes there and stars here rank it among the versions of its topic.
 
 **Topics.** `topic` says what the place is a version of: `site:kyoto-tower`, `interior:gion-machiya`, `city:kyoto`.
@@ -196,8 +204,7 @@ scene/main.ts         the scene module's source; scene/context.ts: what build(ct
 dist/scene.js         the built scene module (bun run build; committed)
 assets/models/        GLB models (+ <name>.meshy.json for Meshy's), scene.glb: the scene's fallback (bun run bake)
 assets/CREDITS.md     where each asset came from
-preview.ts            the preview game threert dev runs (the place alone, its sun, keys)
-threert.config.json   makes this folder a ThreeRT project (threert dev / Remix)
 tools/                build, bake, check, place, meshy, dev, register, sync-earthrt
+preview.ts            optional: the place alone in ThreeRT (`threert dev`), with threert.config.json
 earthrt/              a copy of EarthRT's core (manifest check, frames, sun): bun run sync-earthrt
 ```

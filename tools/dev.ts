@@ -1,14 +1,15 @@
-// bun run dev: EarthRT's dev mode (SPEC § 7). Serves this place's files on this machine and opens EarthRT with
-// `dev=<url>`: the globe, flown to the place, with the place read from here instead of the index's mirror, reloaded
-// on every save. (`threert dev` shows the place alone, path-traced: preview.ts. This shows it on the Earth.)
+// bun run dev: the place on the Earth while you make it (SPEC § 7, dev mode).
 //
-//   bun run dev                        the web (earth.threert.dev) in your browser
-//   bun run dev --client               the ThreeRT client (EarthRT's package), path-traced
-//   bun run dev --proxy                the web app served from this machine too (same origin: for a browser that will
-//                                      not let an https page read http://127.0.0.1)
-//     [--port 8797] [--no-open] [--no-bake] [--web https://earth.threert.dev] [--package https://earth.threert.dev/]
+//   bun run dev --app        the EarthRT app opens this folder in dev mode (earthrt://dev?path=<this folder>): it maps
+//                            the folder into its assets, builds the scene on every save and reloads the place in the
+//                            globe at its anchor, path-traced. (A place made with the app's Create / Remix is open
+//                            there already: you need not run this.)
+//   bun run dev              the web: serves this folder and opens EarthRT's page with `?dev=<url>`
+//   bun run dev --proxy      the same, with the web app served from this machine too (same origin: for a browser that
+//                            will not let an https page read http://127.0.0.1)
+//     [--port 8797] [--no-open] [--no-bake] [--web https://earth.threert.dev]
 //
-// What it serves (http://127.0.0.1:<port>):
+// What the web server serves (http://127.0.0.1:<port>):
 //   /place/<path>        the place's files (earthrt.json, dist/, assets/, …; never dotfiles), CORS open, no cache
 //   /_dev/wait?v=<n>     long poll: answers { v } as soon as the files changed since version n (or after 25 s)
 //   /_dev/status         { v, place, url, error }
@@ -32,7 +33,6 @@ const flag = (n: string) => {
   return i >= 0 ? args[i + 1] : undefined;
 };
 const WEB = (flag("--web") ?? process.env.EARTHRT_WEB ?? "https://earth.threert.dev").replace(/\/$/, "");
-const PACKAGE = flag("--package") ?? process.env.EARTHRT_PACKAGE ?? "https://earth.threert.dev/";
 const proxy = args.includes("--proxy");
 
 // CORS for any page, and Chrome's Private Network Access / Local Network Access preflight (an https page asking
@@ -132,7 +132,17 @@ function serve(port: number) {
   });
 }
 
-if (import.meta.main) {
+if (import.meta.main && args.includes("--app")) {
+  // The app does the rest: it watches the folder and builds the scene itself.
+  const link = `earthrt://dev?path=${encodeURIComponent(root)}`;
+  const r = Bun.spawnSync([process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open", link], { stdout: "pipe", stderr: "pipe" });
+  if (r.exitCode !== 0) {
+    console.error(`✗ could not open ${link}: is the EarthRT app installed? ${(r.stderr.toString() || r.stdout.toString()).trim()}`);
+    process.exit(1);
+  }
+  console.log(`✓ opened in the EarthRT app: ${link}`);
+  process.exit(0);
+} else if (import.meta.main) {
   await rebuild("scene");
   let server: ReturnType<typeof serve> | null = null;
   const first = Number(flag("--port") ?? 8797);
@@ -152,19 +162,11 @@ if (import.meta.main) {
   console.log(`\n  EarthRT dev mode · ${m.title}`);
   console.log(`  place   ${dev}earthrt.json`);
   console.log(`  web     ${page}`);
-  console.log(`  client  threert open ${PACKAGE} --launch '${JSON.stringify({ dev })}'`);
+  console.log(`  app     bun run dev --app (the EarthRT app opens this folder itself)`);
   if (st) console.log(`  start   camera at ${st.position.join(", ")} looking at ${st.target.join(", ")} (place frame)`);
   console.log("  every save rebuilds the scene and its fallback, and EarthRT reloads the place (Ctrl-C to stop)\n");
 
-  if (!args.includes("--no-open")) {
-    if (args.includes("--client")) {
-      const threert = existsSync("/Applications/ThreeRT.app/Contents/MacOS/threert") ? "/Applications/ThreeRT.app/Contents/MacOS/threert" : "threert";
-      const r = Bun.spawnSync([threert, "open", PACKAGE, "--launch", JSON.stringify({ dev })], { stdout: "pipe", stderr: "pipe" });
-      console.log(r.exitCode === 0 ? `  ✓ opened in ThreeRT` : `  ! ThreeRT: ${(r.stderr.toString() || r.stdout.toString()).trim()}`);
-    } else {
-      Bun.spawnSync([process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open", page]);
-    }
-  }
+  if (!args.includes("--no-open")) Bun.spawnSync([process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open", page]);
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending = new Set<string>();

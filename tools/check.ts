@@ -185,7 +185,7 @@ export async function check(o: { scene?: boolean } = {}): Promise<Report> {
     const side = join(root, mo.uri.replace(/\.glb$/i, ".meshy.json"));
     const meta = existsSync(side) ? JSON.parse(readFileSync(side, "utf8")) : null;
     if ((meta || /meshy/i.test(gen)) && !credits.includes("meshy")) r.errors.push(`${mo.uri} was made with Meshy: add "Model made with Meshy" to credits`);
-    if (meta?.test) r.errors.push(`${mo.uri} is Meshy's test-mode sample, not a model of this place: make it again with your own key (bun run meshy …)`);
+    if (meta?.test) r.errors.push(`${mo.uri} is a placeholder from "bun run meshy … --mock", not a model of this place: make it with your own key`);
   }
   const sourceText = existsSync(join(root, "scene")) ? Bun.spawnSync(["grep", "-rli", "openstreetmap\\|overpass", join(root, "scene"), join(root, "assets")]).stdout.toString() : "";
   if (sourceText.trim() && !credits.includes("openstreetmap")) r.errors.push(`OpenStreetMap data is used (${sourceText.trim().split("\n")[0].replace(root + "/", "")}): add "© OpenStreetMap contributors" to credits`);
